@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Othello Jeopardy Review Game</title>
+  <style>
+    body {
+      font-family: 'Trebuchet MS', sans-serif;
+      background: linear-gradient(to right, #8e44ad, #3498db);
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    h1 {
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px #000;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .cell {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: 0.3s;
+      text-align: center;
+    }
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .question-box {
+      margin-top: 30px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #000;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+      text-align: center;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #3498db;
+      color: #fff;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #revealBtn {
+      background-color: #e74c3c;
+    }
+    #revealBtn:hover {
+      background-color: #c0392b;
+    }
+    #finalJeopardy {
+      margin-top: 40px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #000;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Othello Jeopardy Review Game</h1>
+
+  <div class="board" id="board"></div>
+
+  <div class="question-box" id="questionBox">
+    <h2 id="questionText"></h2>
+    <button id="revealBtn" onclick="revealAnswer()">Reveal Answer</button>
+    <p id="answerText" style="margin-top: 15px; display:none; font-weight:bold;"></p>
+    <br>
+    <button onclick="hideQuestion()">Close</button>
+  </div>
+
+  <div id="finalJeopardy">
+    <h2>Final Jeopardy Question:</h2>
+    <p id="finalQuestion">Name three reasons why Othello murders Desdemona?</p>
+    <button id="revealFinal" onclick="revealFinalAnswer()">Reveal Answer</button>
+    <p id="finalAnswer" style="margin-top: 15px; display:none; font-weight:bold;">Iago's manipulation, Othello's insecurities, effects of racism, poor trust, etc.</p>
+  </div>
+
+  <script>
+    const categories = ["Characters", "Plot", "Themes", "Quotes", "Symbols"];
+
+    const questions = {
+      Characters: {100: "Who is Othello’s ensign who plots against him? (Iago)", 200: "Who is used mainly for his money? (Roderigo)", 300: "Who is Cassio's mistress? (Bianca)", 400: "Who 'steals' Desdemona’s handkerchief? (Emilia)", 500: "Who is Brabantio to Desdemona? (Her father)"},
+      Plot: {100: "Where is the play’s opening scene set? (Venice)", 200: "Why is Cassio demoted? (He gets drunk and fights)", 300: "What object becomes ‘ocular proof’? (Handkerchief)", 400: "Where does the second half of the play take place? (Cyprus)", 500: "How does Othello die? (He kills himself)"},
+      Themes: {100: "What idea is represented by Iago’s deception? (Appearance vs Reality)", 200: "Othello’s vulnerability to jealousy reflects what flaw? (Tragic flaw)", 300: "What idea is represented by Iago and Roderigo's taunts of Desdemona's elopement? (Racism/Otherness)", 400: "Emilia's speech about women highlights which theme? (Feminist truths)", 500: "The handkerchief symbolizes what theme? (Trust & fidelity)"},
+      Quotes: {100: "Who says 'O, beware, my lord, of jealousy'? (Iago)", 200: "Who says 'Nobody. I myself. Farewell. Commend me to my kind lord. O, farewell'? (Desdemona)", 300: "Who says 'Put out the light, and then put out the light'? (Othello)", 400: "Who says 'Reputation, reputation, reputation! O, I have lost my reputation!' (Cassio)", 500: "Who says 'Let their husbands know their wives have sense like them'? (Emilia)"},
+      Symbols: {100: "What does the handkerchief symbolize? (Love/Faithfulness)", 200: "What do the candle and light symbolize? (Life/Desdemona’s innocence)", 300: "What does the storm symbolize? (Chaos/foreshadowing)", 400: "What does the bed symbolize? (Marriage/violence)", 500: "What does the willow song symbolize that Desdemona sings? (Madness due to Jealousy)"}
+    };
+
+    const board = document.getElementById("board");
+
+    function loadBoard() {
+      categories.forEach(cat => {
+        const header = document.createElement("div");
+        header.className = "cell";
+        header.style.background = "#222";
+        header.textContent = cat;
+        board.appendChild(header);
+      });
+
+      for (let value of [100, 200, 300, 400, 500]) {
+        categories.forEach(cat => {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.textContent = value;
+          cell.onclick = () => showQuestion(cat, value, cell);
+          board.appendChild(cell);
+        });
+      }
+    }
+
+    function showQuestion(category, value, cell) {
+      const fullText = questions[category][value];
+      const splitIndex = fullText.lastIndexOf('(');
+      const questionText = fullText.substring(0, splitIndex).trim();
+      const answerText = fullText.substring(splitIndex).trim();
+
+      document.getElementById("questionText").textContent = questionText;
+      document.getElementById("answerText").textContent = answerText;
+      document.getElementById("answerText").style.display = "none";
+      document.getElementById("questionBox").style.display = "block";
+      cell.style.visibility = "hidden";
+    }
+
+    function hideQuestion() {
+      document.getElementById("questionBox").style.display = "none";
+    }
+
+    function revealAnswer() {
+      document.getElementById("answerText").style.display = "block";
+    }
+
+    function revealFinalAnswer() {
+      document.getElementById("finalAnswer").style.display = "block";
+    }
+
+    loadBoard();
+
+    setTimeout(() => {
+      document.getElementById("finalJeopardy").style.display = "block";
+    }, 5000);
+  </script>
+</body>
+</html>
